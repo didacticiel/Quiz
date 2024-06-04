@@ -15,71 +15,73 @@ $.ajax({
     url: `${url}data/`,
     success: function(response) {
         console.log(response);
-        // Parcourir les données reçues
-        const data = response.data;
-        data.forEach(el => {
-            // Parcourir chaque question et ses réponses
-            for (const [question, answers] of Object.entries(el)) {
-                // Ajouter une ligne pour chaque question
-                quizBox.innerHTML += `
-                    <hr>
-                    <div class="mb-2">
-                        <b>${question}</b>
-                    </div>
-                `;
-                // Ajouter un bouton radio pour chaque réponse
-                answers.forEach(answer => {
+        if (response.data) {
+            const data = response.data;
+            data.forEach(el => {
+                // Parcourir chaque question et ses réponses
+                for (const [question, answers] of Object.entries(el)) {
+                    // Ajouter une ligne pour chaque question
                     quizBox.innerHTML += `
-                        <div>
-                            <input type="radio" class="ans" id="${question}-${answer}" name="${question}" value="${answer}">
-                            <label for="${question}">${answer}</label>
+                        <hr>
+                        <div class="mb-2">
+                            <b>${question}</b>
                         </div>
                     `;
-                });
-            }
-        });
+                    // Ajouter un bouton radio pour chaque réponse
+                    answers.forEach(answer => {
+                        quizBox.innerHTML += `
+                            <div>
+                                <input type="radio" class="ans" id="${question}-${answer}" name="${question}" value="${answer}">
+                                <label for="${question}">${answer}</label>
+                            </div>
+                        `;
+                    });
+                }
+            });
+        } else {
+            console.error("Aucune donnée reçue dans la réponse AJAX.");
+        }
     },
     error: function(error) {
         console.log(error);
     }
 });
 
+// Fonction pour envoyer les données du formulaire
+const sendData = () => {
+    const data = {};
+    const elements = [...document.getElementsByClassName("ans")];
+    const csrf = document.getElementsByName("csrfmiddlewaretoken");
 
-const quizForm = document.getElementById("quiz-form")
-const csrf = document.getElementsByName("csrfmiddlewaretoken")
+    data["csrfmiddlewaretoken"] = csrf[0].value;
 
+    elements.forEach(el => {
+        if (el.checked) {
+            data[el.name] = el.value;
+        } else {
+            if (!data[el.name]) {
+                data[el.name] = null;
+            }
+        }
+    });
 
-const sendData = () =>{
-const elements = [...document.getElementsByClassName("ans")]
-const data = {}
-data["csrfmiddlewaretoken"] = csrf[0].value
-elements.forEach(el=>{
-    if (el.checked) {
-  
-        data[el.name] = el.value
-         }else{
-           if (!data[el.name]){
-               data[el.name] = null
-    }
-    
-    }
-     
+    // Effectuer une requête AJAX POST pour envoyer les données
+    $.ajax({
+        type: "POST",
+        url: `${url}save/`, // Utiliser des backticks pour l'interpolation de chaînes
+        data: data,
+        success: function(response) {
+            console.log(response);
+        },
+        error: function(error) {
+            console.log(error);
+        }
+    });
+};
 
-})
-}
-
-$ajax({
-      type: "POST",
-      url:  `{url}save/`,
-      data: data,
-      success: function(response){console.log(response)},
-      error:function(error){console.log(error)}
-
-})
-
-
-quizForm.addEventListener("submit",e=>{
-       e.preventDefault()
-       sendData()
-
-})
+// Ajouter un écouteur d'événements pour soumettre le formulaire
+const quizForm = document.getElementById("quiz-form");
+quizForm.addEventListener("submit", e => {
+    e.preventDefault();
+    sendData();
+});
